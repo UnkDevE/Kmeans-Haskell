@@ -77,7 +77,7 @@ executable Kmeans
   -- other-extensions:
 
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.0 && <5, JuicyPixels, repa, JuicyPixels-repa 
+  build-depends:       base >=4.0 && <5, JuicyPixels, repa, vector, random
 
   -- Directories containing source files.
   hs-source-dirs:      src
