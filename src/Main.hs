@@ -1,8 +1,13 @@
+{-# LANGUAGE RecordWildCards #-}
 module Main where
 
 import Kmeans
 
+import System.Environment (getArgs)
+
 import Codec.Picture
+import Data.Array.Repa (foldS, slice, All, Any, Array, DIM1, DIM2, U, D, Z (..), (:.)(..))
+import qualified Data.Array.Repa as R
 
 -- | Produce delayed Repa array from image with true color pixels.
 fromImage :: Image PixelRGB8 -> Array D DIM2 RGB8
@@ -19,16 +24,19 @@ toImage a = generateImage gen width height
   where
     Z :. width :. height = R.extent a
     gen x y =
-      let (r,g,b) = a ! (Z :. x :. y)
+      let (r,g,b) = a R.! (Z :. x :. y)
       in PixelRGB8 r g b
 
 main :: IO ()
 main = do
-    [path, _] <- getArgs
+    [path] <- getArgs
     eimg <- readImage path 
     case eimg of 
-        Left err <- putStrLn "could not open image"
+        Left err -> putStrLn "could not open image"
         Right (ImageRGB8 img) -> do
-            clusters <- kmeans (fromImage img) 16
-            map (\(c, i) -> savePngImage (show i) $ toImage c) $ zip clusters [1..]
+            clusters <- kmeans (R.computeUnboxedS $ fromImage img) 16
+            return $ map (\(c, i) -> savePngImage (show i) $ ImageRGB8 $ toImage c) $ zip (clusters) [1..]
             putStrLn "operation complete"
+        Right _ -> do
+            putStrLn "wtf is this"
+
