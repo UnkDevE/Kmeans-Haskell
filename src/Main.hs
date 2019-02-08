@@ -29,13 +29,13 @@ toImage a = generateImage gen width height
 
 main :: IO ()
 main = do
-    [path] <- getArgs
+    [path, path_] <- getArgs
     eimg <- readImage path 
     case eimg of 
         Left err -> putStrLn "could not open image"
         Right (ImageRGB8 img) -> do
-            clusters <- kmeans (R.computeUnboxedS $ fromImage img) 16
-            return $ map (\(c, i) -> savePngImage (show i) $ ImageRGB8 $ toImage c) $ zip (clusters) [1..]
+            clusters <- kmeans (R.computeUnboxedS $ fromImage img) 3
+            savePngImage path_ $ ImageRGB8 $ toImage (clusters !! 2)
             putStrLn "operation complete"
         Right _ -> do
             putStrLn "wtf is this"

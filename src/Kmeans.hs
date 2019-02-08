@@ -13,6 +13,7 @@ import qualified Data.Vector.Unboxed as V
 import Data.Array.Repa (foldS, slice, All, Any, Array, DIM1, DIM2, U, D, Z (..), (:.)(..))
 import qualified Data.Array.Repa as R
 import qualified Data.Array.Repa.Shape as R.Shape
+import Debug.Trace
 
 kmeans :: Array U DIM2 RGB8 -> Int -> IO [Array U DIM2 RGB8]
 kmeans pixels clusters = do
@@ -43,30 +44,30 @@ guessClusters clusters pixels = do
     
 iteration :: [RGB8] -> Array U DIM2 RGB8 -> [Array U DIM2 RGB8]
 iteration centroids pixels = 
-    map (R.computeUnboxedS . R.map (\(pixel, (mid, dist)) -> if dist < mid then pixel else zeroPixel))
-        (map ( R.computeUnboxedS . R.zipWith (,) pixels . R.zipWith (,) midDist) 
-            $ pairwiseDistance centroids pixels)
+        map (getCluster zippedPixels) [0..((length centroids) - 1)]
     where 
-        midDist = midpointDistance centroids pixels
-   
-meanList :: [RGB8] -> RGB8
-meanList xs = 
-        (truncate (first c / s), 
-        truncate (secnd c / s), 
-        truncate (thd c / s))
-    where 
-        c = foldr1 (\acc new -> (first acc + first new, 
-                secnd acc + secnd new, thd acc + thd new)) xs 
-        s = fromIntegral $ length xs
-    
-pairwiseDistance :: [RGB8] -> Array U DIM2 RGB8 -> [Array U DIM2 Double]
-pairwiseDistance centroids pixels = 
-    map (\c -> R.computeUnboxedS $ R.map (distance c) pixels) centroids
+         zippedPixels = R.computeUnboxedS $ 
+            R.zipWith (,) pixels $ pairwiseDistance centroids pixels
 
-midpointDistance :: [RGB8] -> Array U DIM2 RGB8 -> Array U DIM2 Double
-midpointDistance centroids pixels = 
-    R.computeUnboxedS $ R.map (distance m) pixels 
-    where m = meanList centroids 
+getCluster :: Array U DIM2 (RGB8, Int) -> Int -> Array U DIM2 RGB8
+getCluster zippixs n = 
+    R.computeUnboxedS $ R.map (\(pixel, cluster) -> 
+        if cluster == n then 
+            pixel
+        else
+            zeroPixel
+    ) zippixs
+   
+pairwiseDistance :: [RGB8] -> Array U DIM2 RGB8 -> Array U DIM2 Int
+pairwiseDistance centroids pixels = 
+   R.computeUnboxedS $ R.map (\pixel -> 
+        fst $ foldr1 (\(center, dist) (ncenter, ndist) -> 
+                if ndist < dist then 
+                    (ncenter, ndist)
+                else
+                    (center, dist)
+                )
+            $ zip [0..] $ map ((flip distance) pixel) centroids) pixels 
 
 mean :: Array U DIM2 RGB8 -> RGB8
 mean arr = 
