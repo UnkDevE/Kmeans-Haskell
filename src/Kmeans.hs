@@ -22,25 +22,25 @@ kmeans pixels clusters = do
 
 iterateKmeans :: [RGB8] -> Array U DIM2 RGB8 -> [RGB8]
 iterateKmeans centroids pixels
-    | newCentroids == centroids = centroids
-    | otherwise = iterateKmeans newCentroids pixels
-    where 
-        newCentroids = map mean $ iteration centroids pixels 
+    | newCentroids == centroids = trace (show centroids) centroids
+    | otherwise = iterateKmeans (trace (show centroids) newCentroids) pixels
+    where newCentroids = map mean $ iteration centroids pixels 
 
 guessClusters :: Int -> Array U DIM2 RGB8 -> IO [Array U DIM2 RGB8]
 guessClusters clusters pixels = do 
-    let shape = R.Shape.listOfShape $ R.extent pixels 
-        in do 
-        getStdGen >>= 
-            \gen -> let xs = take clusters $ randomRs (0, shape !! 0) gen 
-                in do 
-                getStdGen >>= 
-                    \gen1 -> let ys = take clusters $ randomRs (0, shape !! 1) gen1 
-                        in do 
-                            let colours = (map (\(x,y) -> pixels R.! (Z :. x :. y)) $ zip xs ys)
-                                in do return $ iteration colours pixels
+    let shape = R.Shape.listOfShape $ R.extent pixels  
+    xs <- randList clusters (0, 255) 
+    ys <- randList clusters (0, 255)
+    zs <- randList clusters (0, 255)
+    let colours = map (\(a,b,c) -> (fromIntegral a, fromIntegral b, fromIntegral c)) $ zip3 xs ys zs
+    return $ iteration colours pixels
 
-
+randList :: Int -> (Int, Int) -> IO ([Int])
+randList 0 range = return []
+randList n range = do 
+    rand <- randomRIO range 
+    rs <- randList (n-1) range 
+    return (rand:rs)
     
 iteration :: [RGB8] -> Array U DIM2 RGB8 -> [Array U DIM2 RGB8]
 iteration centroids pixels = 
@@ -71,9 +71,9 @@ pairwiseDistance centroids pixels =
 
 mean :: Array U DIM2 RGB8 -> RGB8
 mean arr = 
-        (truncate (first c / s), 
-        truncate (secnd c / s), 
-        truncate (thd c / s))
+        (ceiling (first c / s), 
+        ceiling (secnd c / s), 
+        ceiling (thd c / s))
     where
        c = (V.foldl (\a n -> (first a + first n, secnd a + secnd n, thd a + thd n)) 
                 zeroPixel $ R.toUnboxed arr) 
