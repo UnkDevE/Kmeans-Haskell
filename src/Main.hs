@@ -1,5 +1,4 @@
-{-# LANGUAGE RecordWildCards #-}
-module Main where
+{-# LANGUAGE RecordWildCards #-} module Main where
 
 import Kmeans
 
@@ -29,12 +28,14 @@ toImage a = generateImage gen width height
 
 main :: IO ()
 main = do
-    eimg <- readImage "attemp.png"
+    [path, path_] <- getArgs
+    eimg <- readImage path
     case eimg of 
         Left err -> putStrLn "could not open image"
         Right (ImageRGB8 img) -> do
             clusters <- kmeans (R.computeUnboxedS $ fromImage img) 3
-            savePngImage "try" $ ImageRGB8 $ toImage (clusters !! 1)
+            mapM
+                (\(n, x) -> savePngImage (path_ ++ "-" ++ show n) $ ImageRGB8 $ toImage x) $ zip [0..] clusters
             putStrLn "operation complete"
         Right _ -> do
             putStrLn "wtf is this"

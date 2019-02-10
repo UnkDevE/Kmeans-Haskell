@@ -25,8 +25,7 @@ iterateKmeans :: [RGB8] -> V.Vector RGB8 -> [RGB8]
 iterateKmeans centroids pixels
     | newCentroids == centroids = trace (show centroids) centroids
     | otherwise = iterateKmeans (trace (show centroids) newCentroids) pixels
-    where newCentroids = map mean $ trace (show iter) iter
-          iter = iteration centroids pixels 
+    where newCentroids = map mean $ iteration centroids pixels 
 
 guessClusters :: Int -> Array U DIM2 RGB8 -> IO [V.Vector RGB8]
 guessClusters clusters pixels = do 
@@ -56,9 +55,9 @@ getCluster zippixs n =
     V.map (\(pixel, cluster) -> 
         if cluster == n then 
             pixel
-        else
+        else 
             zeroPixel
-    ) zippixs
+     ) zippixs
    
 pairwiseDistance :: [RGB8] -> V.Vector RGB8 -> V.Vector Int
 pairwiseDistance centroids pixels = 
@@ -72,8 +71,9 @@ mean arr =
         ceiling (thd c / s))
     where
        c = (V.foldl (\a n -> 
-            (first a + first n, secnd a + secnd n, thd a + thd n)) 
-                zeroPixel arr) 
+            (first a + (fromIntegral $ first n), secnd a + (fromIntegral $ secnd n), 
+                thd a + (fromIntegral $ thd n))) 
+           (0,0,0) arr)
        s = fromIntegral $ V.length arr 
 
 zeroPixel :: RGB8
@@ -81,10 +81,10 @@ zeroPixel = (0::Word8, 0::Word8, 0::Word8)
 
 distance :: RGB8 -> RGB8 -> Double
 distance op np = sqrt 
-    $ foldr (\fn acc -> acc + ((fn op) - (fn np)) ^ 2) (0) [first, secnd, thd]
+    $ foldr (\fn acc -> acc + ((fn op) - (fn np)) ^ 2) (0) $ map ((.) fromIntegral) [first, secnd, thd]
 
-first (x, _, _) = fromIntegral x
-secnd (_, x, _) = fromIntegral x
-thd (_, _, x) = fromIntegral x 
+first (x, _, _) = x
+secnd (_, x, _) = x
+thd (_, _, x) = x 
 
 type RGB8 = (Word8, Word8, Word8)
